@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система мониторинга сетевой активности</title>
+    <style>
+    :root {
+        --primary-color: #3498db;
+        --primary-hover: #2980b9;
+        --danger-color: #e74c3c;
+        --danger-hover: #c0392b;
+        --success-color: #27ae60;
+        --warning-color: #f32812;
+        --info-color: #3498db;
+        --light-gray: #f4f6f9;
+        --dark-gray: #2c3e50;
+        --text-color: #333;
+        --border-color: #ddd;
+        --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 20px;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+        line-height: 1.6;
+    }
+
+    h1 {
+        text-align: center;
+        color: var(--dark-gray);
+        font-size: 1.8em;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    .filter-container {
+        margin-bottom: 20px;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+        flex-grow: 1;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 150px;
+    }
+
+    .filter-container label {
+        font-weight: bold;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+        color: var(--dark-gray);
+    }
+
+    .filter-container select,
+    .filter-container input[type="text"] {
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.9em;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+    }
+
+    .filter-container select:focus,
+    .filter-container input[type="text"]:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    .filter-container button {
+        padding: 10px 18px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        height: 40px;
+        white-space: nowrap;
+        transition: background-color 0.3s ease;
+    }
+
+    .filter-container button:hover {
+        background-color: var(--primary-hover);
+    }
+
+    .reset-button {
+        background-color: var(--danger-color);
+    }
+
+    .reset-button:hover {
+        background-color: var(--danger-hover);
+    }
+
+    .user-panel {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background-color: var(--light-gray);
+        padding: 10px 15px;
+        border-radius: 6px;
+    }
+
+    .user-info {
+        font-weight: bold;
+        color: var(--dark-gray);
+    }
+
+    .logout-btn {
+        padding: 8px 15px;
+        background-color: var(--danger-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+        transition: background-color 0.3s ease;
+    }
+
+    .logout-btn:hover {
+        background-color: var(--danger-hover);
+    }
+
+    .stats-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        background-color: #fff;
+        border-radius: 6px;
+        box-shadow: var(--shadow);
+        font-size: 0.9em;
+    }
+
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+    }
+
+    .log-table th,
+    .log-table td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-table th {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+    }
+
+    .log-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    .log-table tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .protocol-tcp {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .protocol-udp {
+        color: var(--warning-color);
+        font-weight: bold;
+    }
+
+    .port-https {
+         color: green;
+    }
+
+    .port-dns {
+         color: orange;
+    }
+
+    .port-other {
+         color: red;
+    }
+
+    .log-container {
+        display: none;
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .log-card {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: var(--shadow);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .log-card p {
+        margin: 8px 0;
+        font-size: 0.9em;
+    }
+
+    .log-card p strong {
+        color: var(--dark-gray);
+        min-width: 120px;
+        display: inline-block;
+    }
+
+    .pagination {
+        margin: 25px 0;
+        text-align: center;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .pagination a,
+    .pagination span {
+        margin: 0 2px;
+        padding: 10px 14px;
+        text-decoration: none;
+        color: var(--primary-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.9em;
+        transition: all 0.3s ease;
+    }
+
+    .pagination a:hover {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination .active {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: bold;
+        border-color: var(--primary-color);
+    }
+
+    .pagination .disabled {
+        color: #ccc;
+        border-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    .no-logs {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        font-size: 1.1em;
+        color: #7f8c8d;
+    }
+
+    .timestamp {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    .filter-info {
+        background: #f0f0f0;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    @media (max-width: 768px) {
+        body {
+            margin: 10px;
+        }
+
+        .filter-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-form button {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .user-panel {
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .user-info {
+            text-align: center;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .logout-btn {
+            width: 100%;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        h1 {
+            font-size: 1.5em;
+        }
+
+        .log-table {
+            display: none;
+        }
+
+        .log-container {
+            display: grid;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+
+        .stats-bar {
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .pagination {
+            gap: 4px;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 6px 10px;
+            font-size: 0.8em;
+        }
+
+        .log-card {
+            padding: 12px;
+        }
+
+        .log-card p strong {
+            min-width: 100px;
+            font-size: 0.85em;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="filter-container">
+        <div class="filter-header">
+            <form method="GET" class="filter-form">
+                <div class="filter-group">
+                    <label for="user" class="timestamp">Пользователь:</label>
+                    <select name="user" id="user">
+                        <option value="" class="timestamp">ALL</option>
+                        {% for user in users %}
+                            <option class="timestamp" value="{{ user }}" {% if user == selected_user %}selected{% endif %}>{{ user }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="ip" class="timestamp">IP/Порт:</label>
+                    <input type="text" name="ip" id="ip" class="timestamp" placeholder="IP или порт источника" value="{{ ip_filter or '' }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="dest" class="timestamp">Назначение:</label>
+                    <input type="text" name="dest" id="dest" class="timestamp" placeholder="Хост, порт, протокол" value="{{ dest_filter or '' }}">
+                </div>
+
+                <button type="submit">Применить фильтр</button>
+                <button type="button" class="reset-button" onclick="window.location.href='/'">Сбросить</button>
+            </form>
+
+            <div class="user-panel">
+                <div class="timestamp">Пользователь: {{ current_user }}</div>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Выйти</a>
+            </div>
+        </div>
+    </div>
+
+    {% if ip_filter or dest_filter %}
+    <div class="filter-info">
+        <strong class="timestamp">Активные фильтры:</strong>
+        {% if ip_filter %}IP/Порт: "{{ ip_filter }}"{% endif %}
+        {% if dest_filter %}{% if ip_filter %} | {% endif %}<span class="timestamp">Назначение: "{{ dest_filter }}"{% endif %}</span>
+    </div>
+    {% endif %}
+
+    {% if logs %}
+    <div class="stats-bar">
+        <span class="timestamp">Показано записей: {{ logs|length }}</span>
+        <span class="timestamp">Всего записей: {{ total_pages * items_per_page }}</span>
+        <span class="timestamp">Страница: {{ current_page }} из {{ total_pages }}</span>
+    </div>
+    {% endif %}
+
+    <div class="pagination">
+        {% if total_pages > 1 %}
+            {% if current_page > 1 %}
+                <a href="/?page={{ current_page-1 }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">← Назад</a>
+            {% else %}
+                <span class="disabled">← Назад</span>
+            {% endif %}
+
+            {% if current_page > 3 %}
+                <a href="/?page=1{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">1</a>
+                {% if current_page > 4 %}
+                    <span>...</span>
+                {% endif %}
+            {% endif %}
+
+            {% for page_num in page_range %}
+                {% if page_num == current_page %}
+                    <span class="active">{{ page_num }}</span>
+                {% else %}
+                    <a href="/?page={{ page_num }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if current_page < total_pages - 2 %}
+                {% if current_page < total_pages - 3 %}
+                    <span>...</span>
+                {% endif %}
+                <a href="/?page={{ total_pages }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">{{ total_pages }}</a>
+            {% endif %}
+
+            {% if current_page < total_pages %}
+                <a href="/?page={{ current_page+1 }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">Вперед →</a>
+            {% else %}
+                <span class="disabled">Вперед →</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <table class="log-table">
+    <thead>
+        <tr>
+            <th class="timestamp">Дата и Время</th>
+            <th class="timestamp">Пользователь</th>
+            <th class="timestamp">Источник</th>
+            <th class="timestamp">Протокол</th>
+            <th class="timestamp">Хост назначения</th>
+            <th class="timestamp">Порт</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if logs %}
+            {% for log in logs %}
+            <tr>
+                <td class="timestamp">{{ log.timestamp }}</td>
+                <td class="timestamp"><strong>{{ log.user }}</strong></td>
+                <td class="timestamp">{{ log.source_ip }}{% if log.source_port %}{% else %}N/A{% endif %}</td>
+                <td class="timestamp"><span class="protocol-{{ log.protocol|lower }}">{{ log.protocol }}</span></td>
+                <td class="timestamp">{{ log.destination_host }}</td>  <!-- Хост -->
+                <td class="timestamp"><span class="{% if log.destination_port == 443 %}port-https{% elif log.destination_port in [53, 853] %}port-dns{% else %}port-other{% endif %}">{% if log.destination_port %}{{ log.destination_port }}{% else %}N/A{% endif %}</span>
+                </td>  <!-- Порт -->
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 30px;">Логи не найдены для выбранных фильтров</td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+    <div class="log-container">
+        {% if logs %}
+            {% for log in logs %}
+            <div class="log-card">
+                <p><strong>Время:</strong> <span class="timestamp">{{ log.timestamp }}</span></p>
+                <p><strong>Пользователь:</strong> {{ log.user }}</p>
+                <p><strong>Источник:</strong> {{ log.source_ip }}{% if log.source_port %}{% else %}N/A{% endif %}</p>
+                <p><strong>Протокол:</strong> <span class="protocol-{{ log.protocol|lower }}">{{ log.protocol }}</span></p>
+                <p><strong>Назначение:</strong> {{ log.destination_host }}</p>
+                <p><strong>Порт:</strong><span class="{% if log.destination_port == 443 %}port-https{% elif log.destination_port in [53, 853] %}port-dns{% else %}port-other{% endif %}">
+                        {% if log.destination_port %}{{ log.destination_port }}{% else %}N/A{% endif %}
+                    </span>
+                </p>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-logs">Логи не найдены для выбранных фильтров</div>
+        {% endif %}
+    </div>
+
+    <div class="pagination">
+        {% if total_pages > 1 %}
+            {% if current_page > 1 %}
+                <a href="/?page={{ current_page-1 }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">← Назад</a>
+            {% else %}
+                <span class="disabled">← Назад</span>
+            {% endif %}
+
+            {% if current_page > 3 %}
+                <a href="/?page=1{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">1</a>
+                {% if current_page > 4 %}
+                    <span>...</span>
+                {% endif %}
+            {% endif %}
+
+            {% for page_num in page_range %}
+                {% if page_num == current_page %}
+                    <span class="active">{{ page_num }}</span>
+                {% else %}
+                    <a href="/?page={{ page_num }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if current_page < total_pages - 2 %}
+                {% if current_page < total_pages - 3 %}
+                    <span>...</span>
+                {% endif %}
+                <a href="/?page={{ total_pages }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">{{ total_pages }}</a>
+            {% endif %}
+
+            {% if current_page < total_pages %}
+                <a href="/?page={{ current_page+1 }}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if ip_filter %}&ip={{ ip_filter }}{% endif %}{% if dest_filter %}&dest={{ dest_filter }}{% endif %}">Вперед →</a>
+            {% else %}
+                <span class="disabled">Вперед →</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('ip');
+            if (searchInput) {
+                searchInput.focus();
+            }
+
+            const httpPorts = document.querySelectorAll('.port-other');
+            httpPorts.forEach(port => {
+                port.title = 'HTTP end OTHER (Transfer Protocol)';
+            });
+
+            const httpsPorts = document.querySelectorAll('.port-https');
+            httpsPorts.forEach(port => {
+                port.title = 'HTTPS (Secure HTTP)';
+            });
+
+            const dnsPorts = document.querySelectorAll('.port-dns');
+            dnsPorts.forEach(port => {
+                port.title = 'DNS (Domain Name System)';
+            });
+        });
+    </script>
+</body>
+</html>

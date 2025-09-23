@@ -1,0 +1,28 @@
+[Unit]
+Description=Async Log For 3x-ui with Gunicorn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Запускаем gunicorn прямо из виртуального окружения. Если используете локальный Proxy сервер nginx forwarded-allow-ips "127.0.0.1" если Proxy сервер на другом сервере то указываем IP удаленного сервера.
+ExecStart=/opt/3x-log/.venv/bin/gunicorn \
+    --workers 4 \
+    --bind 0.0.0.0:221 \
+    --timeout 30 \
+    --access-logfile /var/log/3x-log/gunicorn-access.log \
+    --error-logfile /var/log/3x-log/gunicorn-error.log \
+    --forwarded-allow-ips="127.0.0.1" \
+    log_viewer:app
+
+# Путь где лежит проект - log_viewer.py
+WorkingDirectory=/opt/3x-log
+Restart=always
+RestartSec=3
+
+User=root
+Group=root
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/opt/3x-log/secrets
+
+[Install]
+WantedBy=multi-user.target
