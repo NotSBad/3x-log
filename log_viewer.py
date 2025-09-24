@@ -33,10 +33,10 @@ if app.secret_key == 'dev-key-change-in-production':
 if not ADMIN_PASSWORD_HASH.startswith('$2b$') and not ADMIN_PASSWORD_HASH.startswith('$2a$'):
     raise ValueError("Invalid password hash format - must be bcrypt")
 
-DB_FILE = '/opt/3x-ui/logs.db'
+DB_FILE = '/opt/3x-log/logs.db'
 LOG_DIR = '/var/log/3x-ui/'
 LOG_PATTERN = r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d+) from ([\d.:]+) accepted (([^:]+):([^\s]+)) \[[^\]]+\] email: (\S+)'
-LAST_OFFSET_FILE = '/opt/3x-ui/last_offset.txt'
+LAST_OFFSET_FILE = '/opt/3x-log/last_offset.txt'
 ITEMS_PER_PAGE = 50
 
 # Блокировка для синхронизации доступа к базе данных
