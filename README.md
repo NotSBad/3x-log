@@ -36,7 +36,6 @@ source .venv/bin/activate
 pip install flask apscheduler bcrypt werkzeug gunicorn
 ```
 
-```markdown
 🔚 **Завершаем работу с окружением:**
 ```bash
 deactivate
