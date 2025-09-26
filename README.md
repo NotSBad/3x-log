@@ -58,6 +58,12 @@ systemctl daemon-reload
 systemctl enable 3x-log
 ```
 
+## 📂 Создание лог-директорий:
+
+```bash
+mkdir -p /var/log/3x-ui && mkdir -p /var/log/3x-log
+```
+
 ## ⚡ Запускаем приложение:
 
 ```bash
