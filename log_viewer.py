@@ -39,8 +39,15 @@ LOG_PATTERN = r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d+) from ([\d.:]+) accept
 LAST_OFFSET_FILE = '/opt/3x-log/last_offset.txt'
 ITEMS_PER_PAGE = 50
 
+# Создаем директорию для БД если не существует
+os.makedirs('/opt/3x-log', exist_ok=True)
+
 # Блокировка для синхронизации доступа к базе данных
 db_lock = threading.Lock()
+
+# Флаг инициализации БД
+db_initialized = False
+init_lock = threading.Lock()
 
 # Время последнего обновления логов
 last_log_update_time = 0
@@ -65,7 +72,26 @@ def login_required(f):
     return decorated_function
 
 # ---------------- БАЗА ДАННЫХ ----------------
+def ensure_db_initialized():
+    """Гарантирует, что БД инициализирована перед любыми операциями"""
+    global db_initialized
+    if db_initialized:
+        return True
+
+    with init_lock:
+        if db_initialized:  # Проверяем еще раз внутри блокировки
+            return True
+
+        try:
+            init_db()
+            db_initialized = True
+            return True
+        except Exception as e:
+            logging.error(f"Ошибка при инициализации БД: {e}")
+            return False
+
 def init_db():
+    """Инициализация базы данных"""
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -121,11 +147,13 @@ def init_db():
 
             conn.commit()
             conn.close()
+            logging.warning("База данных успешно инициализирована")
         except Exception as e:
             logging.error(f"Ошибка в init_db: {e}")
             if 'conn' in locals():
                 conn.rollback()
                 conn.close()
+            raise
 
 def migrate_old_to_new_structure(conn, cursor):
     try:
@@ -200,6 +228,9 @@ def migrate_old_to_new_structure(conn, cursor):
         raise
 
 def get_metadata(key, default=None):
+    if not ensure_db_initialized():
+        return default
+
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -213,6 +244,9 @@ def get_metadata(key, default=None):
             return default
 
 def set_metadata(key, value):
+    if not ensure_db_initialized():
+        return
+
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -239,6 +273,9 @@ def get_file_hash(file_path):
         return None
 
 def parse_and_insert_logs(incremental=True):
+    if not ensure_db_initialized():
+        return
+
     global last_log_update_time
     with db_lock:
         try:
@@ -281,13 +318,17 @@ def parse_and_insert_logs(incremental=True):
                 conn.close()
 
 def process_current_log_incremental(log_file, cursor):
+    # Создаем файл last_offset.txt если не существует
+    if not os.path.exists(LAST_OFFSET_FILE):
+        with open(LAST_OFFSET_FILE, 'w') as f:
+            f.write('0')
+
     last_offset = 0
-    if os.path.exists(LAST_OFFSET_FILE):
-        try:
-            with open(LAST_OFFSET_FILE, 'r') as f:
-                last_offset = int(f.read().strip())
-        except (ValueError, FileNotFoundError):
-            last_offset = 0
+    try:
+        with open(LAST_OFFSET_FILE, 'r') as f:
+            last_offset = int(f.read().strip())
+    except (ValueError, FileNotFoundError):
+        last_offset = 0
 
     try:
         file_size = os.path.getsize(log_file)
@@ -366,6 +407,9 @@ def process_line(line, cursor):
     return False
 
 def auto_clear_old_logs():
+    if not ensure_db_initialized():
+        return
+
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -397,6 +441,9 @@ def auto_clear_old_logs():
                 conn.close()
 
 def get_unique_users():
+    if not ensure_db_initialized():
+        return []
+
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -410,6 +457,9 @@ def get_unique_users():
             return []
 
 def get_logs(user_filter=None, ip_filter=None, dest_filter=None, page=1):
+    if not ensure_db_initialized():
+        return [], 1, range(1, 2)
+
     with db_lock:
         try:
             conn = sqlite3.connect(DB_FILE, timeout=60)
@@ -484,6 +534,10 @@ def get_logs(user_filter=None, ip_filter=None, dest_filter=None, page=1):
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def display_logs():
+    # Гарантируем инициализацию БД перед любыми операциями
+    if not ensure_db_initialized():
+        return "Database initialization failed", 500
+
     # Обновляем логи только если прошло больше 30 секунд с последнего обновления
     global last_log_update_time
     current_time = time.time()
@@ -534,7 +588,8 @@ def logout():
 
 # ---------------- СОЗДАНИЕ ПРИЛОЖЕНИЯ ----------------
 def create_app():
-    init_db()
+    # Инициализируем БД при запуске приложения
+    ensure_db_initialized()
 
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=parse_and_insert_logs, args=(True,), trigger="interval", minutes=5)
