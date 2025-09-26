@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
 
 # Настройка логирования - только ошибки
-logging.basicConfig(filename='/var/log/3x-ui/app.log', level=logging.WARNING)
+logging.basicConfig(filename='/var/log/3x-log/app.log', level=logging.WARNING)
 
 # Безопасное получение обязательных переменных окружения
 app.secret_key = os.environ['SECRET_KEY']
