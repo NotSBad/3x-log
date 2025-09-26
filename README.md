@@ -32,14 +32,14 @@ cd 3x-log && python3 -m venv .venv
 source .venv/bin/activate
 ```
 
+```bash
+pip install flask apscheduler bcrypt werkzeug gunicorn
+```
+
 ```markdown
 🔚 **Завершаем работу с окружением:**
 ```bash
 deactivate
-```
-
-```bash
-pip install flask apscheduler bcrypt werkzeug gunicorn
 ```
 
 ## 📄 Копируем service-файл:
