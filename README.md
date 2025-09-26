@@ -10,7 +10,7 @@ apt update && apt upgrade
 ```
 
 ```bash
-apt install python3.11-venv
+apt install git python3.11-venv
 ```
 
 ## 📁 Клонируем репозиторий и создаем окружение python:
