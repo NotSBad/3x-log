@@ -174,7 +174,6 @@
         margin-bottom: 20px;
     }
 
-    /* Стили для ссылок в таблице */
     .log-table a {
         color: inherit;
         text-decoration: none;
@@ -182,11 +181,10 @@
     }
 
     .log-table a.timestamp {
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        font-family: 'Courier New', monospace;
     }
 
-   /* Стили для ссылок в карточках */
    .log-card a {
        color: inherit;
        text-decoration: none;
@@ -527,7 +525,7 @@
                 <td class="timestamp"><strong>{{ log.user }}</strong></td>
                 <td class="timestamp">{{ log.source_ip }}{% if log.source_port %}{% else %}N/A{% endif %}</td>
                 <td class="timestamp"><span class="protocol-{{ log.protocol|lower }}">{{ log.protocol }}</span></td>
-                <td class="timestamp"><a href="https://radar.qrator.net/search?query={{ log.destination_host }}" target="_blank" class="timestamp" title="Открыть в RIPE Stat">{{ log.destination_host }}</a></td>
+                <td class="timestamp"><a href="https://radar.qrator.net/search?query={{ log.destination_host }}" target="_blank" class="timestamp" title="Открыть в Radar.Qrator.">{{ log.destination_host }}</a></td>
                 <td class="timestamp"><span class="{% if log.destination_port == 443 %}port-https{% elif log.destination_port in [53, 853] %}port-dns{% else %}port-other{% endif %}">{% if log.destination_port %}{{ log.destination_port }}{% else %}N/A{% endif %}</span>
                 </td>  <!-- Порт -->
             </tr>
@@ -548,7 +546,7 @@
                 <p><strong>Пользователь:</strong> {{ log.user }}</p>
                 <p><strong>Источник:</strong> {{ log.source_ip }}{% if log.source_port %}{% else %}N/A{% endif %}</p>
                 <p><strong>Протокол:</strong> <span class="protocol-{{ log.protocol|lower }}">{{ log.protocol }}</span></p>
-                <p><strong>Назначение:</strong><a href="https://radar.qrator.net/search?query={{ log.destination_host }}" target="_blank" class="timestamp" title="Открыть в RIPE Stat">{{ log.destination_host }}</a></p>
+                <p><strong>Назначение:</strong><a href="https://radar.qrator.net/search?query={{ log.destination_host }}" target="_blank" class="timestamp" title="Открыть в Radar.Qrator.">{{ log.destination_host }}</a></p>
                 <p><strong>Порт:</strong><span class="{% if log.destination_port == 443 %}port-https{% elif log.destination_port in [53, 853] %}port-dns{% else %}port-other{% endif %}">
                         {% if log.destination_port %}{{ log.destination_port }}{% else %}N/A{% endif %}
                     </span>
